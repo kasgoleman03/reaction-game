@@ -1,0 +1,1269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Daily Journal — Entry</title>
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500&family=EB+Garamond:ital,wght@0,400;0,500;1,400;1,500&display=swap" rel="stylesheet" />
+
+  <style>
+    /* ═══════════════════════════════════════════
+       RESET & TOKENS  (mirrors home page)
+       ═══════════════════════════════════════════ */
+
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    :root {
+      --bg:             #FDFCFA;
+      --sidebar-bg:     #FAFAF7;
+      --sidebar-border: #EDEAE3;
+      --card-hover:     #F3F1EB;
+
+      --text:           #1A1A1A;
+      --text-mid:       #3D3D3D;
+      --text-muted:     #7A7770;
+      --text-faint:     #A8A49C;
+
+      --btn-bg:         #1A1A1A;
+      --btn-text:       #FDFCFA;
+
+      --font-serif:     'EB Garamond', Georgia, serif;
+      --font-sans:      'DM Sans', 'Helvetica Neue', sans-serif;
+
+      --ease:           cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    html, body {
+      height: 100%;
+      background-color: var(--bg);
+      color: var(--text);
+      font-family: var(--font-serif);
+    }
+
+    body {
+      min-height: 100vh;
+      position: relative;
+      overflow-x: hidden;
+
+      /* Page-level fade-in so navigation feels gentle */
+      animation: pageFade 0.6s var(--ease) both;
+    }
+
+    @keyframes pageFade {
+      from { opacity: 0; }
+      to   { opacity: 1; }
+    }
+
+
+    /* ═══════════════════════════════════════════
+       BACKGROUND ATMOSPHERE  (blobs + motes)
+       Pulled from the home page so the editor
+       feels like the same room.
+       ═══════════════════════════════════════════ */
+
+    .bg-shapes {
+      position: fixed;
+      inset: 0;
+      overflow: hidden;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .shape {
+      position: absolute;
+      border-radius: 50%;
+      opacity: 0.45;
+      filter: blur(80px);
+    }
+
+    .shape--1 { width: 360px; height: 360px; background: #EDE8DF; top: -8%;   left: -5%;  animation: float1 24s ease-in-out infinite; }
+    .shape--2 { width: 280px; height: 280px; background: #E8E3D8; top: 30%;   right: -3%; animation: float2 28s ease-in-out infinite; }
+    .shape--3 { width: 220px; height: 220px; background: #F0E9DE; bottom: 5%; left: 30%;  animation: float3 22s ease-in-out infinite; }
+    .shape--4 { width: 160px; height: 160px; background: #ECE7DD; top: 60%;   left: 5%;   animation: float4 26s ease-in-out infinite; }
+
+    @keyframes float1 {
+      0%, 100% { transform: translate(0, 0) scale(1); }
+      33%      { transform: translate(30px, 40px) scale(1.05); }
+      66%      { transform: translate(-20px, 20px) scale(0.95); }
+    }
+    @keyframes float2 {
+      0%, 100% { transform: translate(0, 0) scale(1); }
+      33%      { transform: translate(-25px, -30px) scale(1.08); }
+      66%      { transform: translate(35px, -15px) scale(0.96); }
+    }
+    @keyframes float3 {
+      0%, 100% { transform: translate(0, 0) scale(1); }
+      50%      { transform: translate(40px, -35px) scale(1.1); }
+    }
+    @keyframes float4 {
+      0%, 100% { transform: translate(0, 0); }
+      33%      { transform: translate(20px, 25px); }
+      66%      { transform: translate(-15px, -20px); }
+    }
+
+    .motes {
+      position: fixed;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+
+    /* ═══════════════════════════════════════════
+       TOP BAR
+       ═══════════════════════════════════════════ */
+
+    .topbar {
+      position: relative;
+      z-index: 5;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 22px 36px;
+      gap: 16px;
+
+      opacity: 0;
+      transform: translateY(-8px);
+      transition: opacity 0.6s var(--ease), transform 0.6s var(--ease);
+    }
+
+    .topbar.is-mounted {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .topbar__left,
+    .topbar__right {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .back-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-family: var(--font-sans);
+      font-size: 13px;
+      color: var(--text-muted);
+      text-decoration: none;
+      cursor: pointer;
+      background: none;
+      border: none;
+      padding: 8px 12px;
+      border-radius: 8px;
+      transition: color 0.25s ease, background-color 0.25s ease;
+    }
+
+    .back-link:hover {
+      color: var(--text);
+      background-color: var(--card-hover);
+    }
+
+    .back-link__arrow {
+      font-size: 16px;
+      line-height: 1;
+      transition: transform 0.25s var(--ease);
+    }
+
+    .back-link:hover .back-link__arrow {
+      transform: translateX(-2px);
+    }
+
+    .save-status {
+      font-family: var(--font-sans);
+      font-size: 11.5px;
+      letter-spacing: 0.06em;
+      color: var(--text-faint);
+      min-width: 76px;
+      text-align: right;
+      transition: color 0.4s ease, opacity 0.4s ease;
+      opacity: 0.85;
+      display: inline-flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 6px;
+    }
+
+    .save-status::before {
+      content: "";
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background-color: currentColor;
+      opacity: 0.55;
+      transition: background-color 0.4s ease;
+    }
+
+    .save-status.is-empty::before { display: none; }
+    .save-status.is-saving        { color: var(--text-muted); }
+    .save-status.is-saved         { color: #6B8E5A; }
+    .save-status.is-error         { color: #B85C5C; }
+
+    @keyframes savePulse {
+      0%, 100% { opacity: 0.5; }
+      50%      { opacity: 1;   }
+    }
+
+    .save-status.is-saving::before {
+      animation: savePulse 1.2s ease-in-out infinite;
+    }
+
+    .topbar__btn {
+      font-family: var(--font-sans);
+      font-size: 13px;
+      font-weight: 500;
+      letter-spacing: 0.04em;
+      padding: 9px 22px;
+      border: none;
+      border-radius: 100px;
+      cursor: pointer;
+      transition: transform 0.25s var(--ease), box-shadow 0.25s var(--ease),
+                  background-color 0.25s ease, color 0.25s ease;
+    }
+
+    .topbar__btn--primary {
+      background-color: var(--btn-bg);
+      color: var(--btn-text);
+    }
+
+    .topbar__btn--primary:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.1);
+    }
+
+    .topbar__btn--ghost {
+      background-color: transparent;
+      color: var(--text-mid);
+      border: 1px solid var(--sidebar-border);
+    }
+
+    .topbar__btn--ghost:hover {
+      background-color: var(--card-hover);
+      color: var(--text);
+    }
+
+
+    /* ═══════════════════════════════════════════
+       EDITOR
+       ═══════════════════════════════════════════ */
+
+    .editor {
+      position: relative;
+      z-index: 2;
+      width: 100%;
+      max-width: 720px;
+      margin: 0 auto;
+      padding: 56px 32px 120px;
+      display: flex;
+      flex-direction: column;
+      gap: 28px;
+
+      opacity: 0;
+      transform: translateY(20px);
+      transition: opacity 0.8s var(--ease), transform 0.8s var(--ease);
+      transition-delay: 0.1s;
+    }
+
+    .editor.is-mounted {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .editor__date {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      font-family: var(--font-sans);
+      font-size: 11px;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      align-self: flex-start;
+      padding: 7px 14px;
+      border-radius: 100px;
+      background-color: rgba(243, 241, 235, 0.65);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+    }
+
+    .editor__date--draft-mark {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background-color: var(--text-faint);
+    }
+
+    .editor__title {
+      font-family: var(--font-serif);
+      font-size: 44px;
+      font-weight: 400;
+      line-height: 1.15;
+      color: var(--text);
+      letter-spacing: -0.015em;
+      border: none;
+      outline: none;
+      background: transparent;
+      width: 100%;
+      padding: 0;
+      resize: none;
+      overflow: hidden;
+    }
+
+    .editor__title::placeholder {
+      color: var(--text-faint);
+      font-style: italic;
+      font-weight: 400;
+    }
+
+
+    /* ── Mood picker ── */
+
+    .mood-picker {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-wrap: wrap;
+      padding: 4px 0;
+    }
+
+    .mood-picker__label {
+      font-family: var(--font-sans);
+      font-size: 10.5px;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: var(--text-faint);
+      margin-right: 6px;
+    }
+
+    .mood-option {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-family: var(--font-sans);
+      font-size: 12.5px;
+      color: var(--text-muted);
+      background: transparent;
+      border: 1px solid transparent;
+      border-radius: 100px;
+      padding: 6px 13px 6px 10px;
+      cursor: pointer;
+      transition: color 0.25s ease, background-color 0.25s ease,
+                  border-color 0.25s ease, transform 0.2s var(--ease);
+    }
+
+    .mood-option:hover {
+      color: var(--text);
+      background-color: rgba(243, 241, 235, 0.7);
+    }
+
+    .mood-option:active {
+      transform: scale(0.97);
+    }
+
+    .mood-option__dot {
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      flex-shrink: 0;
+      transition: box-shadow 0.3s var(--ease), transform 0.3s var(--ease);
+    }
+
+    .mood-option.is-selected {
+      color: var(--text);
+      background-color: rgba(243, 241, 235, 0.9);
+      border-color: var(--sidebar-border);
+    }
+
+    .mood-option.is-selected .mood-option__dot {
+      transform: scale(1.15);
+      box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.7),
+                  0 0 0 4px rgba(0, 0, 0, 0.04);
+    }
+
+
+    /* ── Body textarea ── */
+
+    .editor__body {
+      font-family: var(--font-serif);
+      font-size: 19px;
+      line-height: 1.75;
+      color: var(--text-mid);
+      border: none;
+      outline: none;
+      background: transparent;
+      width: 100%;
+      min-height: 50vh;
+      padding: 0;
+      resize: none;
+      overflow: hidden;
+    }
+
+    .editor__body::placeholder {
+      color: var(--text-faint);
+      font-style: italic;
+    }
+
+
+    /* ── Read-only mode ── */
+
+    .editor.is-readonly .editor__title,
+    .editor.is-readonly .editor__body {
+      cursor: default;
+      caret-color: transparent;
+    }
+
+    .editor.is-readonly .mood-option {
+      pointer-events: none;
+      cursor: default;
+    }
+
+    .editor.is-readonly .mood-option:not(.is-selected) {
+      display: none;
+    }
+
+    .editor.is-readonly .mood-picker__label {
+      display: none;
+    }
+
+
+    /* ═══════════════════════════════════════════
+       TOAST
+       ═══════════════════════════════════════════ */
+
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translate(-50%, 20px);
+      z-index: 100;
+      background-color: rgba(26, 26, 26, 0.95);
+      color: var(--btn-text);
+      font-family: var(--font-sans);
+      font-size: 13px;
+      padding: 12px 20px;
+      border-radius: 100px;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.18);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.35s var(--ease), transform 0.35s var(--ease);
+      max-width: calc(100% - 40px);
+      text-align: center;
+    }
+
+    .toast.is-visible {
+      opacity: 1;
+      transform: translate(-50%, 0);
+    }
+
+
+    /* ═══════════════════════════════════════════
+       DISCARD CONFIRM DIALOG
+       ═══════════════════════════════════════════ */
+
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      z-index: 50;
+      background-color: rgba(26, 26, 26, 0.32);
+      backdrop-filter: blur(2px);
+      -webkit-backdrop-filter: blur(2px);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+
+    .modal-backdrop.is-visible {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .modal {
+      background-color: var(--bg);
+      border-radius: 16px;
+      padding: 32px 32px 24px;
+      max-width: 420px;
+      width: 100%;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.18);
+      transform: translateY(12px);
+      transition: transform 0.35s var(--ease);
+    }
+
+    .modal-backdrop.is-visible .modal {
+      transform: translateY(0);
+    }
+
+    .modal__title {
+      font-family: var(--font-serif);
+      font-size: 22px;
+      color: var(--text);
+      margin-bottom: 8px;
+    }
+
+    .modal__body {
+      font-family: var(--font-sans);
+      font-size: 14px;
+      color: var(--text-muted);
+      line-height: 1.55;
+      margin-bottom: 22px;
+    }
+
+    .modal__actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+    }
+
+
+    /* ═══════════════════════════════════════════
+       KEYBOARD HINT
+       ═══════════════════════════════════════════ */
+
+    .kbd-hint {
+      position: fixed;
+      bottom: 20px;
+      right: 28px;
+      z-index: 3;
+      font-family: var(--font-sans);
+      font-size: 10.5px;
+      color: var(--text-faint);
+      letter-spacing: 0.06em;
+      opacity: 0;
+      transition: opacity 0.6s ease;
+      pointer-events: none;
+    }
+
+    .kbd-hint.is-visible {
+      opacity: 0.7;
+    }
+
+    .kbd-hint kbd {
+      display: inline-block;
+      font-family: inherit;
+      font-size: 10px;
+      padding: 1px 5px;
+      border-radius: 3px;
+      background-color: rgba(243, 241, 235, 0.8);
+      border: 1px solid var(--sidebar-border);
+      color: var(--text-muted);
+      margin: 0 1px;
+    }
+
+
+    /* ═══════════════════════════════════════════
+       RESPONSIVE
+       ═══════════════════════════════════════════ */
+
+    @media (max-width: 720px) {
+      .topbar          { padding: 16px 18px; }
+      .editor          { padding: 36px 22px 100px; gap: 22px; }
+      .editor__title   { font-size: 32px; }
+      .editor__body    { font-size: 17px; }
+      .save-status     { min-width: 0; font-size: 11px; }
+      .save-status .save-status__text { display: none; }
+      .topbar__btn     { padding: 8px 16px; font-size: 12.5px; }
+      .back-link span:not(.back-link__arrow) { display: none; }
+      .kbd-hint        { display: none; }
+      .shape           { opacity: 0.35; }
+    }
+
+    @media (max-width: 420px) {
+      .editor__title   { font-size: 28px; }
+      .mood-picker     { gap: 4px; }
+      .mood-option     { padding: 5px 10px 5px 9px; font-size: 12px; }
+    }
+
+
+    /* ═══════════════════════════════════════════
+       ACCESSIBILITY — respect reduced motion
+       ═══════════════════════════════════════════ */
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- ── Background atmosphere ── -->
+  <div class="bg-shapes" aria-hidden="true">
+    <div class="shape shape--1"></div>
+    <div class="shape shape--2"></div>
+    <div class="shape shape--3"></div>
+    <div class="shape shape--4"></div>
+    <canvas class="motes" id="motes"></canvas>
+  </div>
+
+
+  <!-- ── Top bar ── -->
+  <header class="topbar" id="topbar">
+    <div class="topbar__left">
+      <button class="back-link" id="back-link" aria-label="Back to journal">
+        <span class="back-link__arrow" aria-hidden="true">←</span>
+        <span>Journal</span>
+      </button>
+    </div>
+    <div class="topbar__right">
+      <span class="save-status is-empty" id="save-status" aria-live="polite">
+        <span class="save-status__text"></span>
+      </span>
+      <button class="topbar__btn topbar__btn--ghost" id="edit-btn" style="display: none;">Edit</button>
+      <button class="topbar__btn topbar__btn--primary" id="done-btn">Done</button>
+    </div>
+  </header>
+
+
+  <!-- ── Editor ── -->
+  <main class="editor" id="editor">
+
+    <div class="editor__date" id="editor-date">
+      <span class="editor__date--draft-mark" id="date-mark" style="display: none;"></span>
+      <span id="date-text"></span>
+    </div>
+
+    <textarea
+      class="editor__title"
+      id="editor-title"
+      placeholder="A title…"
+      rows="1"
+      aria-label="Entry title"
+    ></textarea>
+
+    <div class="mood-picker" id="mood-picker">
+      <span class="mood-picker__label">Mood</span>
+      <!-- Populated by JS -->
+    </div>
+
+    <textarea
+      class="editor__body"
+      id="editor-body"
+      placeholder="What's on your mind today?"
+      aria-label="Entry body"
+    ></textarea>
+
+  </main>
+
+
+  <!-- ── Toast ── -->
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+
+  <!-- ── Discard confirm modal ── -->
+  <div class="modal-backdrop" id="discard-modal" role="dialog" aria-modal="true" aria-labelledby="discard-title">
+    <div class="modal">
+      <h2 class="modal__title" id="discard-title">Discard this entry?</h2>
+      <p class="modal__body">You haven't written anything yet. We'll quietly remove this draft so it doesn't clutter your journal.</p>
+      <div class="modal__actions">
+        <button class="topbar__btn topbar__btn--ghost"   id="discard-cancel">Keep it</button>
+        <button class="topbar__btn topbar__btn--primary" id="discard-confirm">Discard</button>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ── Keyboard hint ── -->
+  <div class="kbd-hint" id="kbd-hint">
+    <kbd id="kbd-mod">⌘</kbd><kbd>S</kbd> save · <kbd id="kbd-mod-2">⌘</kbd><kbd>↵</kbd> done · <kbd>Esc</kbd> back
+  </div>
+
+
+  <script>
+    /* ═══════════════════════════════════════════
+       CONFIG
+       ═══════════════════════════════════════════ */
+
+    const AUTO_SAVE_INTERVAL = 3000;  // 3 seconds, per spec
+
+    const MOOD_COLORS = {
+      peaceful:      "#8CBDB5",
+      accomplished:  "#C4A265",
+      reflective:    "#9B8EC4",
+      grateful:      "#D4956B",
+      introspective: "#7BA3C4",
+    };
+
+    const MOOD_LABELS = {
+      peaceful:      "Peaceful",
+      accomplished:  "Accomplished",
+      reflective:    "Reflective",
+      grateful:      "Grateful",
+      introspective: "Introspective",
+    };
+
+
+    /* ═══════════════════════════════════════════
+       DOM REFS
+       ═══════════════════════════════════════════ */
+
+    const editorEl       = document.getElementById("editor");
+    const topbarEl       = document.getElementById("topbar");
+    const dateText       = document.getElementById("date-text");
+    const dateMark       = document.getElementById("date-mark");
+    const titleEl        = document.getElementById("editor-title");
+    const bodyEl         = document.getElementById("editor-body");
+    const moodPicker     = document.getElementById("mood-picker");
+    const saveStatus     = document.getElementById("save-status");
+    const saveText       = saveStatus.querySelector(".save-status__text");
+    const backLink       = document.getElementById("back-link");
+    const editBtn        = document.getElementById("edit-btn");
+    const doneBtn        = document.getElementById("done-btn");
+    const toastEl        = document.getElementById("toast");
+    const discardModal   = document.getElementById("discard-modal");
+    const discardCancel  = document.getElementById("discard-cancel");
+    const discardConfirm = document.getElementById("discard-confirm");
+    const kbdHint        = document.getElementById("kbd-hint");
+
+
+    /* ═══════════════════════════════════════════
+       STATE
+       ═══════════════════════════════════════════ */
+
+    const params      = new URLSearchParams(window.location.search);
+    const entryId     = params.get("id");
+    const initialMode = params.get("mode") === "view" ? "view" : "edit";
+
+    let mode              = initialMode;
+    let currentEntry      = null;
+    let lastSavedSnapshot = null;
+    let saveTimer         = null;
+    let isSaving          = false;
+    let toastTimer        = null;
+
+
+    /* ═══════════════════════════════════════════
+       INIT
+       ═══════════════════════════════════════════ */
+
+    if (!entryId) {
+      window.location.href = "/";
+    }
+
+    const isMac = /Mac|iPhone|iPad|iPod/.test(navigator.platform || navigator.userAgent || "");
+    if (!isMac) {
+      document.getElementById("kbd-mod").textContent   = "Ctrl";
+      document.getElementById("kbd-mod-2").textContent = "Ctrl";
+    }
+
+    init();
+
+    async function init() {
+      // Build mood picker
+      Object.entries(MOOD_LABELS).forEach(([key, label]) => {
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "mood-option";
+        btn.dataset.mood = key;
+        btn.setAttribute("aria-pressed", "false");
+        btn.innerHTML = `
+          <span class="mood-option__dot" style="background-color: ${MOOD_COLORS[key]}"></span>
+          <span>${label}</span>
+        `;
+        btn.addEventListener("click", () => {
+          if (mode !== "edit") return;
+          const next = currentEntry.mood === key ? null : key;
+          setMood(next);
+          scheduleSave();
+        });
+        moodPicker.appendChild(btn);
+      });
+
+      // Load entry
+      try {
+        const res = await fetch("/api/entries/" + encodeURIComponent(entryId));
+        if (!res.ok) throw new Error("not found");
+        currentEntry = await res.json();
+      } catch (err) {
+        console.error(err);
+        showToast("Couldn't load this entry.");
+        setTimeout(() => { window.location.href = "/"; }, 1400);
+        return;
+      }
+
+      titleEl.value = currentEntry.title || "";
+      bodyEl.value  = currentEntry.body  || "";
+      setMood(currentEntry.mood);
+      autoGrow(titleEl);
+      autoGrow(bodyEl);
+      dateText.textContent = formatHeaderDate(currentEntry.createdAt);
+      dateMark.style.display = currentEntry.status === "draft" ? "" : "none";
+
+      lastSavedSnapshot = snapshot();
+      applyMode(mode);
+
+      requestAnimationFrame(() => {
+        topbarEl.classList.add("is-mounted");
+        editorEl.classList.add("is-mounted");
+        if (window.matchMedia("(min-width: 721px)").matches) {
+          setTimeout(() => kbdHint.classList.add("is-visible"), 1200);
+        }
+      });
+    }
+
+
+    /* ═══════════════════════════════════════════
+       MODE: EDIT vs VIEW
+       ═══════════════════════════════════════════ */
+
+    function applyMode(next) {
+      mode = next;
+      const editing = (mode === "edit");
+
+      titleEl.readOnly = !editing;
+      bodyEl.readOnly  = !editing;
+
+      editorEl.classList.toggle("is-readonly", !editing);
+
+      editBtn.style.display = editing ? "none" : "";
+      doneBtn.style.display = editing ? "" : "none";
+
+      if (!editing) clearStatus();
+
+      if (editing) {
+        if (!titleEl.value.trim()) {
+          titleEl.focus();
+        } else {
+          bodyEl.focus();
+          bodyEl.setSelectionRange(bodyEl.value.length, bodyEl.value.length);
+        }
+      }
+    }
+
+    editBtn.addEventListener("click", () => applyMode("edit"));
+
+
+    /* ═══════════════════════════════════════════
+       AUTO-SAVE
+       ═══════════════════════════════════════════ */
+
+    function snapshot() {
+      return JSON.stringify({
+        title: titleEl.value,
+        body:  bodyEl.value,
+        mood:  currentEntry ? currentEntry.mood : null,
+      });
+    }
+
+    function scheduleSave() {
+      if (mode !== "edit") return;
+
+      const now = snapshot();
+      if (now === lastSavedSnapshot) return;
+
+      setStatus("Unsaved", "saving");
+
+      if (saveTimer) return;
+      saveTimer = setTimeout(() => {
+        saveTimer = null;
+        save();
+      }, AUTO_SAVE_INTERVAL);
+    }
+
+    async function save({ silent = false } = {}) {
+      if (isSaving) return;
+      const payloadSnap = snapshot();
+      if (payloadSnap === lastSavedSnapshot) return;
+
+      isSaving = true;
+      if (!silent) setStatus("Saving", "saving");
+
+      try {
+        const res = await fetch("/api/entries/" + encodeURIComponent(entryId), {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            title: titleEl.value,
+            body:  bodyEl.value,
+            mood:  currentEntry.mood,
+          }),
+        });
+        if (!res.ok) throw new Error("save failed");
+        currentEntry = await res.json();
+        lastSavedSnapshot = payloadSnap;
+        if (!silent) setStatus("Saved", "saved");
+      } catch (err) {
+        console.error(err);
+        setStatus("Offline", "error");
+        showToast("Can't reach the server. We'll keep trying.");
+        setTimeout(() => scheduleSave(), 5000);
+      } finally {
+        isSaving = false;
+        if (snapshot() !== lastSavedSnapshot) {
+          scheduleSave();
+        }
+      }
+    }
+
+    function setStatus(text, kind) {
+      saveText.textContent = text;
+      saveStatus.classList.remove("is-empty", "is-saving", "is-saved", "is-error");
+      if (kind) saveStatus.classList.add("is-" + kind);
+    }
+
+    function clearStatus() {
+      saveText.textContent = "";
+      saveStatus.classList.remove("is-saving", "is-saved", "is-error");
+      saveStatus.classList.add("is-empty");
+    }
+
+
+    /* ═══════════════════════════════════════════
+       PAGE TRANSITIONS
+       ═══════════════════════════════════════════ */
+
+    function fadeOutAndGo(url) {
+      document.body.style.transition = "opacity 0.35s ease";
+      document.body.style.opacity    = "0";
+      setTimeout(() => { window.location.href = url; }, 350);
+    }
+
+    // Restore opacity if the user comes back via browser back-button (bfcache)
+    window.addEventListener("pageshow", (e) => {
+      if (e.persisted) {
+        document.body.style.opacity = "";
+      }
+    });
+
+
+    /* ═══════════════════════════════════════════
+       INPUT HANDLERS
+       ═══════════════════════════════════════════ */
+
+    titleEl.addEventListener("input", () => {
+      autoGrow(titleEl);
+      scheduleSave();
+    });
+
+    bodyEl.addEventListener("input", () => {
+      autoGrow(bodyEl);
+      scheduleSave();
+    });
+
+    titleEl.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        bodyEl.focus();
+      }
+    });
+
+
+    /* ═══════════════════════════════════════════
+       MOOD
+       ═══════════════════════════════════════════ */
+
+    function setMood(value) {
+      if (currentEntry) currentEntry.mood = value;
+      moodPicker.querySelectorAll(".mood-option").forEach((btn) => {
+        const selected = btn.dataset.mood === value;
+        btn.classList.toggle("is-selected", selected);
+        btn.setAttribute("aria-pressed", selected ? "true" : "false");
+      });
+    }
+
+
+    /* ═══════════════════════════════════════════
+       DONE / NAVIGATE AWAY
+       ═══════════════════════════════════════════ */
+
+    function hasContent() {
+      return (titleEl.value && titleEl.value.trim().length > 0) ||
+             (bodyEl.value  && bodyEl.value.trim().length  > 0);
+    }
+
+    async function publishAndGoHome() {
+      if (saveTimer) { clearTimeout(saveTimer); saveTimer = null; }
+
+      if (!hasContent()) {
+        openDiscardModal();
+        return;
+      }
+
+      try {
+        setStatus("Saving", "saving");
+        const res = await fetch("/api/entries/" + encodeURIComponent(entryId), {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            title:  titleEl.value,
+            body:   bodyEl.value,
+            mood:   currentEntry.mood,
+            status: "published",
+          }),
+        });
+        if (!res.ok) throw new Error("publish failed");
+      } catch (err) {
+        console.error(err);
+        showToast("Couldn't save. Check your connection and try again.");
+        setStatus("Offline", "error");
+        return;
+      }
+      setStatus("Saved", "saved");
+      setTimeout(() => { fadeOutAndGo("/"); }, 220);
+    }
+
+    async function backToHome() {
+      try {
+        if (saveTimer) { clearTimeout(saveTimer); saveTimer = null; }
+
+        if (mode === "edit" && snapshot() !== lastSavedSnapshot) {
+          await save({ silent: true });
+        }
+
+        if (currentEntry && currentEntry.status === "draft" && !hasContent()) {
+          openDiscardModal();
+          return;
+        }
+      } catch (err) {
+        console.error(err);
+      }
+      fadeOutAndGo("/");
+    }
+
+    doneBtn.addEventListener("click", publishAndGoHome);
+    backLink.addEventListener("click", backToHome);
+
+
+    /* ═══════════════════════════════════════════
+       DISCARD CONFIRM
+       ═══════════════════════════════════════════ */
+
+    function openDiscardModal() {
+      discardModal.classList.add("is-visible");
+      setTimeout(() => discardCancel.focus(), 50);
+    }
+
+    function closeDiscardModal() {
+      discardModal.classList.remove("is-visible");
+    }
+
+    discardCancel.addEventListener("click", () => {
+      closeDiscardModal();
+      titleEl.focus();
+    });
+
+    discardConfirm.addEventListener("click", async () => {
+      try {
+        await fetch("/api/entries/" + encodeURIComponent(entryId), { method: "DELETE" });
+      } catch (err) {
+        console.error(err);
+      }
+      fadeOutAndGo("/");
+    });
+
+    discardModal.addEventListener("click", (e) => {
+      if (e.target === discardModal) closeDiscardModal();
+    });
+
+
+    /* ═══════════════════════════════════════════
+       KEYBOARD SHORTCUTS
+       ═══════════════════════════════════════════ */
+
+    document.addEventListener("keydown", (e) => {
+      const mod = e.metaKey || e.ctrlKey;
+
+      if (mod && e.key === "s") {
+        e.preventDefault();
+        if (mode === "edit") {
+          if (saveTimer) { clearTimeout(saveTimer); saveTimer = null; }
+          save();
+        }
+        return;
+      }
+
+      if (mod && e.key === "Enter") {
+        e.preventDefault();
+        if (mode === "edit") publishAndGoHome();
+        else                 fadeOutAndGo("/");
+        return;
+      }
+
+      if (e.key === "Escape") {
+        if (discardModal.classList.contains("is-visible")) {
+          closeDiscardModal();
+        } else {
+          backToHome();
+        }
+      }
+    });
+
+
+    /* ═══════════════════════════════════════════
+       TOAST
+       ═══════════════════════════════════════════ */
+
+    function showToast(message, duration = 3500) {
+      toastEl.textContent = message;
+      toastEl.classList.add("is-visible");
+      if (toastTimer) clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => {
+        toastEl.classList.remove("is-visible");
+      }, duration);
+    }
+
+
+    /* ═══════════════════════════════════════════
+       SAFETY: save on hide / unload
+       ═══════════════════════════════════════════ */
+
+    window.addEventListener("beforeunload", () => {
+      if (mode !== "edit") return;
+      if (snapshot() === lastSavedSnapshot) return;
+
+      try {
+        const blob = new Blob(
+          [JSON.stringify({
+            title: titleEl.value,
+            body:  bodyEl.value,
+            mood:  currentEntry ? currentEntry.mood : null,
+          })],
+          { type: "application/json" }
+        );
+        navigator.sendBeacon &&
+          navigator.sendBeacon("/api/entries/" + encodeURIComponent(entryId) + "/beacon", blob);
+      } catch (_) { /* best effort */ }
+    });
+
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState === "hidden" && mode === "edit") {
+        if (snapshot() !== lastSavedSnapshot) save({ silent: true });
+      }
+    });
+
+
+    /* ═══════════════════════════════════════════
+       UTILITIES
+       ═══════════════════════════════════════════ */
+
+    function autoGrow(el) {
+      el.style.height = "auto";
+      el.style.height = el.scrollHeight + "px";
+    }
+
+    function formatHeaderDate(ms) {
+      const d = new Date(ms);
+      const date = d.toLocaleDateString("en-US", {
+        weekday: "long",
+        month:   "long",
+        day:     "numeric",
+        year:    "numeric",
+      });
+      const time = d.toLocaleTimeString("en-US", {
+        hour:   "numeric",
+        minute: "2-digit",
+      });
+      return `${date} · ${time}`;
+    }
+
+
+    /* ═══════════════════════════════════════════
+       FLOATING MOTES  (same as home page)
+       ═══════════════════════════════════════════ */
+
+    (() => {
+      const canvas = document.getElementById("motes");
+      const ctx    = canvas.getContext("2d");
+      const MOTE_COUNT = 70;
+      const COLORS     = ["200, 192, 176", "184, 176, 160"];
+      const dpr        = window.devicePixelRatio || 1;
+
+      let width  = 0;
+      let height = 0;
+      let motes  = [];
+
+      function resize() {
+        const rect = canvas.getBoundingClientRect();
+        width  = rect.width;
+        height = rect.height;
+        canvas.width  = width  * dpr;
+        canvas.height = height * dpr;
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+        ctx.scale(dpr, dpr);
+      }
+
+      function makeMote(initial = false) {
+        const traversalSeconds = 80 + Math.random() * 70;
+        const speed = height / traversalSeconds;
+        return {
+          x:         Math.random() * width,
+          y:         initial ? Math.random() * height : height + Math.random() * 20,
+          size:      1 + Math.random() * 2,
+          opacity:   0.08 + Math.random() * 0.17,
+          speed,
+          color:     COLORS[Math.floor(Math.random() * COLORS.length)],
+          swayAmp:   8 + Math.random() * 18,
+          swayFreq:  0.0003 + Math.random() * 0.0005,
+          swayPhase: Math.random() * Math.PI * 2,
+        };
+      }
+
+      function init() {
+        resize();
+        motes = Array.from({ length: MOTE_COUNT }, () => makeMote(true));
+      }
+
+      let lastTime = performance.now();
+
+      function tick(now) {
+        const dt = (now - lastTime) / 1000;
+        lastTime = now;
+
+        ctx.clearRect(0, 0, width, height);
+
+        for (const m of motes) {
+          m.y -= m.speed * dt;
+          const drawX = m.x + Math.sin(now * m.swayFreq + m.swayPhase) * m.swayAmp;
+
+          if (m.y < -m.size) {
+            Object.assign(m, makeMote(false));
+            continue;
+          }
+
+          ctx.beginPath();
+          ctx.arc(drawX, m.y, m.size / 2, 0, Math.PI * 2);
+          ctx.fillStyle = `rgba(${m.color}, ${m.opacity})`;
+          ctx.fill();
+        }
+
+        requestAnimationFrame(tick);
+      }
+
+      window.addEventListener("resize", () => {
+        const prevH = height;
+        resize();
+        if (prevH > 0) {
+          const ratio = height / prevH;
+          for (const m of motes) {
+            m.y *= ratio;
+            m.speed = height / (80 + Math.random() * 70);
+          }
+        }
+      });
+
+      init();
+      requestAnimationFrame(tick);
+    })();
+  </script>
+
+</body>
+</html>
