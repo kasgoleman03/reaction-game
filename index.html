@@ -1,0 +1,2246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Daily Journal</title>
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500&family=EB+Garamond:ital,wght@0,400;0,500;1,400;1,500&display=swap" rel="stylesheet" />
+
+  <style>
+    /* ═══════════════════════════════════════════
+       RESET & TOKENS
+       ═══════════════════════════════════════════ */
+
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    :root {
+      --bg:             #FDFCFA;
+      --sidebar-bg:     #FAFAF7;
+      --sidebar-border: #EDEAE3;
+      --card-hover:     #F3F1EB;
+
+      --text:           #1A1A1A;
+      --text-mid:       #3D3D3D;
+      --text-muted:     #7A7770;
+      --text-faint:     #A8A49C;
+
+      --btn-bg:         #1A1A1A;
+      --btn-text:       #FDFCFA;
+
+      --font-serif:     'EB Garamond', Georgia, serif;
+      --font-sans:      'DM Sans', 'Helvetica Neue', sans-serif;
+
+      --ease:           cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    html, body {
+      height: 100%;
+      background-color: var(--bg);
+      color: var(--text);
+      font-family: var(--font-serif);
+    }
+
+    body {
+      min-height: 100vh;
+      position: relative;
+      overflow-x: hidden;
+      opacity: 0;
+      transition: opacity 0.5s ease;
+    }
+
+    body.is-ready {
+      opacity: 1;
+    }
+
+
+    /* ═══════════════════════════════════════════
+       BACKGROUND ATMOSPHERE (blobs + motes)
+       Shared across all views.
+       ═══════════════════════════════════════════ */
+
+    .bg-shapes {
+      position: fixed;
+      inset: 0;
+      overflow: hidden;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .shape {
+      position: absolute;
+      border-radius: 50%;
+      opacity: 0.45;
+      filter: blur(80px);
+    }
+
+    .shape--1 { width: 360px; height: 360px; background: #EDE8DF; top: -8%;   left: -5%;  animation: float1 24s ease-in-out infinite; }
+    .shape--2 { width: 280px; height: 280px; background: #E8E3D8; top: 30%;   right: -3%; animation: float2 28s ease-in-out infinite; }
+    .shape--3 { width: 220px; height: 220px; background: #F0E9DE; bottom: 5%; left: 30%;  animation: float3 22s ease-in-out infinite; }
+    .shape--4 { width: 160px; height: 160px; background: #ECE7DD; top: 60%;   left: 5%;   animation: float4 26s ease-in-out infinite; }
+    .shape--5 { width: 200px; height: 200px; background: #ECE7DD; bottom: 15%; right: 20%; animation: float5 28s ease-in-out infinite; }
+
+    @keyframes float1 {
+      0%, 100% { transform: translate(0, 0) scale(1); }
+      33%      { transform: translate(30px, 40px) scale(1.05); }
+      66%      { transform: translate(-20px, 20px) scale(0.95); }
+    }
+    @keyframes float2 {
+      0%, 100% { transform: translate(0, 0) scale(1); }
+      33%      { transform: translate(-25px, -30px) scale(1.08); }
+      66%      { transform: translate(35px, -15px) scale(0.96); }
+    }
+    @keyframes float3 {
+      0%, 100% { transform: translate(0, 0) scale(1); }
+      50%      { transform: translate(40px, -35px) scale(1.1); }
+    }
+    @keyframes float4 {
+      0%, 100% { transform: translate(0, 0); }
+      33%      { transform: translate(20px, 25px); }
+      66%      { transform: translate(-15px, -20px); }
+    }
+    @keyframes float5 {
+      0%, 100% { transform: translate(0, 0) scale(1); }
+      33%      { transform: translate(-35px, 25px) scale(1.05); }
+      66%      { transform: translate(15px, -30px) scale(0.95); }
+    }
+
+    .motes {
+      position: fixed;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+
+    /* ═══════════════════════════════════════════
+       VIEWS — sign-in / home / editor
+       Only one view is visible at a time.
+       ═══════════════════════════════════════════ */
+
+    .view {
+      display: none;
+      position: relative;
+      z-index: 1;
+    }
+
+    .view.is-active {
+      display: block;
+    }
+
+
+    /* ═══════════════════════════════════════════
+       SIGN-IN VIEW
+       ═══════════════════════════════════════════ */
+
+    .signin {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+
+    .signin__panel {
+      max-width: 420px;
+      width: 100%;
+      text-align: center;
+      padding: 40px 28px;
+
+      opacity: 0;
+      transform: translateY(20px);
+      transition: opacity 0.8s var(--ease), transform 0.8s var(--ease);
+    }
+
+    .signin__panel.is-mounted {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .signin__logo {
+      font-family: var(--font-serif);
+      font-size: 14px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-bottom: 32px;
+    }
+
+    .signin__title {
+      font-family: var(--font-serif);
+      font-size: 44px;
+      font-weight: 400;
+      letter-spacing: -0.015em;
+      line-height: 1.15;
+      color: var(--text);
+      margin-bottom: 12px;
+    }
+
+    .signin__subtitle {
+      font-family: var(--font-serif);
+      font-style: italic;
+      font-size: 18px;
+      color: var(--text-muted);
+      line-height: 1.5;
+      margin-bottom: 40px;
+    }
+
+    .google-signin-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+      font-family: var(--font-sans);
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--text);
+      background-color: #FFFFFF;
+      border: 1px solid var(--sidebar-border);
+      border-radius: 100px;
+      padding: 12px 24px;
+      cursor: pointer;
+      transition: transform 0.25s var(--ease), box-shadow 0.25s var(--ease),
+                  background-color 0.25s ease, border-color 0.25s ease;
+    }
+
+    .google-signin-btn:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
+      border-color: var(--text-faint);
+    }
+
+    .google-signin-btn:disabled {
+      opacity: 0.6;
+      cursor: wait;
+      transform: none;
+      box-shadow: none;
+    }
+
+    .google-signin-btn__icon {
+      width: 18px;
+      height: 18px;
+      flex-shrink: 0;
+    }
+
+    .signin__footer {
+      margin-top: 32px;
+      font-family: var(--font-sans);
+      font-size: 12px;
+      color: var(--text-faint);
+      line-height: 1.6;
+    }
+
+
+    /* ═══════════════════════════════════════════
+       HOME VIEW — sidebar + center content
+       ═══════════════════════════════════════════ */
+
+    .home {
+      position: relative;
+      min-height: 100vh;
+    }
+
+    /* Hamburger */
+    .hamburger {
+      position: fixed;
+      top: 24px;
+      left: 24px;
+      z-index: 30;
+      width: 40px;
+      height: 40px;
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 5px;
+      border-radius: 8px;
+      transition: background-color 0.25s ease;
+    }
+
+    .hamburger:hover {
+      background-color: var(--card-hover);
+    }
+
+    .hamburger__line {
+      width: 18px;
+      height: 1.5px;
+      background-color: var(--text-mid);
+      border-radius: 2px;
+      transition: transform 0.3s var(--ease), opacity 0.3s ease;
+    }
+
+    .hamburger.is-open .hamburger__line:nth-child(1) {
+      transform: translateY(6.5px) rotate(45deg);
+    }
+    .hamburger.is-open .hamburger__line:nth-child(2) {
+      opacity: 0;
+    }
+    .hamburger.is-open .hamburger__line:nth-child(3) {
+      transform: translateY(-6.5px) rotate(-45deg);
+    }
+
+    /* Account button (top-right) */
+    .account-btn {
+      position: fixed;
+      top: 24px;
+      right: 24px;
+      z-index: 30;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 6px 14px 6px 6px;
+      background-color: rgba(243, 241, 235, 0.65);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      border: 1px solid var(--sidebar-border);
+      border-radius: 100px;
+      cursor: pointer;
+      transition: background-color 0.25s ease, transform 0.2s var(--ease);
+      font-family: var(--font-sans);
+      font-size: 12.5px;
+      color: var(--text-mid);
+    }
+
+    .account-btn:hover {
+      background-color: rgba(243, 241, 235, 0.95);
+    }
+
+    .account-btn__avatar {
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      object-fit: cover;
+      background-color: var(--card-hover);
+    }
+
+    /* Account dropdown */
+    .account-menu {
+      position: fixed;
+      top: 70px;
+      right: 24px;
+      z-index: 40;
+      min-width: 220px;
+      background-color: var(--bg);
+      border: 1px solid var(--sidebar-border);
+      border-radius: 12px;
+      box-shadow: 0 12px 36px rgba(0, 0, 0, 0.10);
+      padding: 8px;
+      opacity: 0;
+      transform: translateY(-8px) scale(0.97);
+      pointer-events: none;
+      transition: opacity 0.2s var(--ease), transform 0.2s var(--ease);
+    }
+
+    .account-menu.is-visible {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+      pointer-events: auto;
+    }
+
+    .account-menu__header {
+      padding: 10px 12px 12px;
+      border-bottom: 1px solid var(--sidebar-border);
+      margin-bottom: 6px;
+    }
+
+    .account-menu__name {
+      font-family: var(--font-sans);
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text);
+      line-height: 1.3;
+    }
+
+    .account-menu__email {
+      font-family: var(--font-sans);
+      font-size: 11.5px;
+      color: var(--text-muted);
+      margin-top: 2px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .account-menu__item {
+      display: block;
+      width: 100%;
+      text-align: left;
+      font-family: var(--font-sans);
+      font-size: 13px;
+      color: var(--text-mid);
+      background: transparent;
+      border: none;
+      padding: 9px 12px;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: background-color 0.2s ease, color 0.2s ease;
+    }
+
+    .account-menu__item:hover {
+      background-color: var(--card-hover);
+      color: var(--text);
+    }
+
+    /* Sidebar */
+    .sidebar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 360px;
+      max-width: 90vw;
+      height: 100vh;
+      background-color: var(--sidebar-bg);
+      border-right: 1px solid var(--sidebar-border);
+      transform: translateX(-100%);
+      transition: transform 0.4s var(--ease);
+      z-index: 25;
+      display: flex;
+      flex-direction: column;
+      padding-top: 72px;
+    }
+
+    .sidebar.is-open {
+      transform: translateX(0);
+    }
+
+    .sidebar__header {
+      padding: 12px 28px 18px;
+    }
+
+    .sidebar__title {
+      font-family: var(--font-serif);
+      font-size: 22px;
+      font-weight: 400;
+      color: var(--text);
+      margin-bottom: 4px;
+    }
+
+    .sidebar__subtitle {
+      font-family: var(--font-sans);
+      font-size: 11px;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--text-faint);
+    }
+
+    .sidebar__list {
+      flex: 1;
+      overflow-y: auto;
+      padding: 8px 16px 24px;
+    }
+
+    .sidebar__empty {
+      padding: 28px 14px;
+      text-align: center;
+    }
+
+    .sidebar__empty p {
+      font-family: var(--font-serif);
+      font-size: 16px;
+      color: var(--text-muted);
+      font-style: italic;
+      margin-bottom: 6px;
+    }
+
+    .sidebar__empty__sub {
+      font-size: 13px !important;
+      font-style: normal !important;
+      color: var(--text-faint) !important;
+    }
+
+    /* Entry card */
+    .entry-card {
+      padding: 14px 14px;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: background-color 0.2s ease, transform 0.2s var(--ease),
+                  opacity 0.5s var(--ease), translate 0.5s var(--ease);
+      opacity: 0;
+      translate: 0 8px;
+    }
+
+    .entry-card.is-mounted {
+      opacity: 1;
+      translate: 0 0;
+    }
+
+    .entry-card:hover {
+      background-color: var(--card-hover);
+    }
+
+    .entry-card__top {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 6px;
+      width: 100%;
+    }
+
+    .entry-card__mood {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .entry-card__date {
+      font-family: var(--font-sans);
+      font-size: 10.5px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--text-faint);
+    }
+
+    .entry-card__draft-pill {
+      display: inline-block;
+      font-size: 9.5px;
+      font-family: var(--font-sans);
+      font-weight: 500;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      background-color: var(--card-hover);
+      border-radius: 4px;
+      padding: 2px 7px;
+      margin-left: auto;
+    }
+
+    .entry-card__title {
+      font-family: var(--font-serif);
+      font-size: 17px;
+      font-weight: 400;
+      line-height: 1.3;
+      color: var(--text);
+      margin-bottom: 4px;
+    }
+
+    .entry-card.is-draft .entry-card__title {
+      font-style: italic;
+      color: var(--text-mid);
+    }
+
+    .entry-card__preview {
+      font-size: 13px;
+      color: var(--text-muted);
+      line-height: 1.5;
+      font-family: var(--font-sans);
+    }
+
+    /* Overlay */
+    .overlay {
+      position: fixed;
+      inset: 0;
+      background-color: rgba(26, 26, 26, 0.18);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s ease;
+      z-index: 20;
+      backdrop-filter: blur(2px);
+      -webkit-backdrop-filter: blur(2px);
+    }
+
+    .overlay.is-visible {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    /* Center content */
+    .home__main {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0 24px;
+    }
+
+    .center {
+      max-width: 520px;
+      text-align: center;
+      opacity: 0;
+      transform: translateY(20px);
+      transition: opacity 0.8s var(--ease), transform 0.8s var(--ease);
+    }
+
+    .center.is-mounted {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .date-pill {
+      display: inline-block;
+      font-family: var(--font-sans);
+      font-size: 11px;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      padding: 7px 14px;
+      border-radius: 100px;
+      background-color: rgba(243, 241, 235, 0.65);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      margin-bottom: 24px;
+    }
+
+    .greeting {
+      font-family: var(--font-serif);
+      font-size: 44px;
+      font-weight: 400;
+      letter-spacing: -0.015em;
+      line-height: 1.15;
+      color: var(--text);
+      margin-bottom: 12px;
+    }
+
+    .greeting__name {
+      font-style: italic;
+    }
+
+    .motivation {
+      font-family: var(--font-serif);
+      font-style: italic;
+      font-size: 18px;
+      line-height: 1.5;
+      color: var(--text-muted);
+      margin-bottom: 36px;
+      min-height: 27px; /* prevent layout shift */
+    }
+
+    .new-entry-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      font-family: var(--font-sans);
+      font-size: 13px;
+      font-weight: 500;
+      letter-spacing: 0.04em;
+      color: var(--btn-text);
+      background-color: var(--btn-bg);
+      border: none;
+      border-radius: 100px;
+      padding: 12px 26px;
+      cursor: pointer;
+      transition: transform 0.25s var(--ease), box-shadow 0.25s var(--ease),
+                  opacity 0.25s ease;
+    }
+
+    .new-entry-btn:hover:not(:disabled) {
+      transform: translateY(-1px);
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12);
+    }
+
+    .new-entry-btn:disabled {
+      opacity: 0.5;
+      cursor: wait;
+    }
+
+    .new-entry-btn__icon {
+      font-size: 18px;
+      line-height: 0.7;
+    }
+
+    .entry-count {
+      margin-top: 24px;
+      font-family: var(--font-sans);
+      font-size: 11.5px;
+      letter-spacing: 0.06em;
+      color: var(--text-faint);
+    }
+
+
+    /* ═══════════════════════════════════════════
+       EDITOR VIEW
+       ═══════════════════════════════════════════ */
+
+    .editor-view {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .topbar {
+      position: relative;
+      z-index: 5;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 22px 36px;
+      gap: 16px;
+    }
+
+    .topbar__left, .topbar__right {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .back-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-family: var(--font-sans);
+      font-size: 13px;
+      color: var(--text-muted);
+      text-decoration: none;
+      cursor: pointer;
+      background: none;
+      border: none;
+      padding: 8px 12px;
+      border-radius: 8px;
+      transition: color 0.25s ease, background-color 0.25s ease;
+    }
+
+    .back-link:hover {
+      color: var(--text);
+      background-color: var(--card-hover);
+    }
+
+    .back-link__arrow {
+      font-size: 16px;
+      line-height: 1;
+      transition: transform 0.25s var(--ease);
+    }
+
+    .back-link:hover .back-link__arrow {
+      transform: translateX(-2px);
+    }
+
+    .save-status {
+      font-family: var(--font-sans);
+      font-size: 11.5px;
+      letter-spacing: 0.06em;
+      color: var(--text-faint);
+      min-width: 76px;
+      text-align: right;
+      transition: color 0.4s ease;
+      display: inline-flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 6px;
+    }
+
+    .save-status::before {
+      content: "";
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background-color: currentColor;
+      opacity: 0.55;
+    }
+
+    .save-status.is-empty::before { display: none; }
+    .save-status.is-saving        { color: var(--text-muted); }
+    .save-status.is-saved         { color: #6B8E5A; }
+    .save-status.is-error         { color: #B85C5C; }
+
+    @keyframes savePulse {
+      0%, 100% { opacity: 0.5; }
+      50%      { opacity: 1;   }
+    }
+
+    .save-status.is-saving::before {
+      animation: savePulse 1.2s ease-in-out infinite;
+    }
+
+    .topbar__btn {
+      font-family: var(--font-sans);
+      font-size: 13px;
+      font-weight: 500;
+      letter-spacing: 0.04em;
+      padding: 9px 22px;
+      border: none;
+      border-radius: 100px;
+      cursor: pointer;
+      transition: transform 0.25s var(--ease), box-shadow 0.25s var(--ease),
+                  background-color 0.25s ease, color 0.25s ease;
+    }
+
+    .topbar__btn--primary {
+      background-color: var(--btn-bg);
+      color: var(--btn-text);
+    }
+
+    .topbar__btn--primary:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.1);
+    }
+
+    .topbar__btn--ghost {
+      background-color: transparent;
+      color: var(--text-mid);
+      border: 1px solid var(--sidebar-border);
+    }
+
+    .topbar__btn--ghost:hover {
+      background-color: var(--card-hover);
+      color: var(--text);
+    }
+
+    .editor {
+      position: relative;
+      z-index: 2;
+      width: 100%;
+      max-width: 720px;
+      margin: 0 auto;
+      padding: 56px 32px 120px;
+      display: flex;
+      flex-direction: column;
+      gap: 28px;
+
+      opacity: 0;
+      transform: translateY(20px);
+      transition: opacity 0.6s var(--ease), transform 0.6s var(--ease);
+    }
+
+    .editor.is-mounted {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .editor__date {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      font-family: var(--font-sans);
+      font-size: 11px;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      align-self: flex-start;
+      padding: 7px 14px;
+      border-radius: 100px;
+      background-color: rgba(243, 241, 235, 0.65);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+    }
+
+    .editor__date--draft-mark {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background-color: var(--text-faint);
+    }
+
+    .editor__title {
+      font-family: var(--font-serif);
+      font-size: 44px;
+      font-weight: 400;
+      line-height: 1.15;
+      color: var(--text);
+      letter-spacing: -0.015em;
+      border: none;
+      outline: none;
+      background: transparent;
+      width: 100%;
+      padding: 0;
+      resize: none;
+      overflow: hidden;
+    }
+
+    .editor__title::placeholder {
+      color: var(--text-faint);
+      font-style: italic;
+    }
+
+    .mood-picker {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-wrap: wrap;
+      padding: 4px 0;
+    }
+
+    .mood-picker__label {
+      font-family: var(--font-sans);
+      font-size: 10.5px;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: var(--text-faint);
+      margin-right: 6px;
+    }
+
+    .mood-option {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-family: var(--font-sans);
+      font-size: 12.5px;
+      color: var(--text-muted);
+      background: transparent;
+      border: 1px solid transparent;
+      border-radius: 100px;
+      padding: 6px 13px 6px 10px;
+      cursor: pointer;
+      transition: color 0.25s ease, background-color 0.25s ease,
+                  border-color 0.25s ease, transform 0.2s var(--ease);
+    }
+
+    .mood-option:hover {
+      color: var(--text);
+      background-color: rgba(243, 241, 235, 0.7);
+    }
+
+    .mood-option:active {
+      transform: scale(0.97);
+    }
+
+    .mood-option__dot {
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      flex-shrink: 0;
+      transition: box-shadow 0.3s var(--ease), transform 0.3s var(--ease);
+    }
+
+    .mood-option.is-selected {
+      color: var(--text);
+      background-color: rgba(243, 241, 235, 0.9);
+      border-color: var(--sidebar-border);
+    }
+
+    .mood-option.is-selected .mood-option__dot {
+      transform: scale(1.15);
+      box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.7),
+                  0 0 0 4px rgba(0, 0, 0, 0.04);
+    }
+
+    .editor__body {
+      font-family: var(--font-serif);
+      font-size: 19px;
+      line-height: 1.75;
+      color: var(--text-mid);
+      border: none;
+      outline: none;
+      background: transparent;
+      width: 100%;
+      min-height: 50vh;
+      padding: 0;
+      resize: none;
+      overflow: hidden;
+    }
+
+    .editor__body::placeholder {
+      color: var(--text-faint);
+      font-style: italic;
+    }
+
+    .editor.is-readonly .editor__title,
+    .editor.is-readonly .editor__body {
+      cursor: default;
+      caret-color: transparent;
+    }
+
+    .editor.is-readonly .mood-option {
+      pointer-events: none;
+      cursor: default;
+    }
+
+    .editor.is-readonly .mood-option:not(.is-selected) {
+      display: none;
+    }
+
+    .editor.is-readonly .mood-picker__label {
+      display: none;
+    }
+
+
+    /* ═══════════════════════════════════════════
+       TOAST + MODAL (shared)
+       ═══════════════════════════════════════════ */
+
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translate(-50%, 20px);
+      z-index: 100;
+      background-color: rgba(26, 26, 26, 0.95);
+      color: var(--btn-text);
+      font-family: var(--font-sans);
+      font-size: 13px;
+      padding: 12px 20px;
+      border-radius: 100px;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.18);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.35s var(--ease), transform 0.35s var(--ease);
+      max-width: calc(100% - 40px);
+      text-align: center;
+    }
+
+    .toast.is-visible {
+      opacity: 1;
+      transform: translate(-50%, 0);
+    }
+
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      z-index: 50;
+      background-color: rgba(26, 26, 26, 0.32);
+      backdrop-filter: blur(2px);
+      -webkit-backdrop-filter: blur(2px);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+
+    .modal-backdrop.is-visible {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .modal {
+      background-color: var(--bg);
+      border-radius: 16px;
+      padding: 32px 32px 24px;
+      max-width: 420px;
+      width: 100%;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.18);
+      transform: translateY(12px);
+      transition: transform 0.35s var(--ease);
+    }
+
+    .modal-backdrop.is-visible .modal {
+      transform: translateY(0);
+    }
+
+    .modal__title {
+      font-family: var(--font-serif);
+      font-size: 22px;
+      color: var(--text);
+      margin-bottom: 8px;
+    }
+
+    .modal__body {
+      font-family: var(--font-sans);
+      font-size: 14px;
+      color: var(--text-muted);
+      line-height: 1.55;
+      margin-bottom: 22px;
+    }
+
+    .modal__actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+    }
+
+
+    /* ═══════════════════════════════════════════
+       LOADING SCREEN
+       ═══════════════════════════════════════════ */
+
+    .loading {
+      position: fixed;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 200;
+      background-color: var(--bg);
+      transition: opacity 0.4s ease;
+    }
+
+    .loading.is-hidden {
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .loading__dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background-color: var(--text-faint);
+      animation: loadPulse 1.4s ease-in-out infinite;
+    }
+
+    @keyframes loadPulse {
+      0%, 100% { opacity: 0.3; transform: scale(0.9); }
+      50%      { opacity: 1;   transform: scale(1.1); }
+    }
+
+
+    /* ═══════════════════════════════════════════
+       RESPONSIVE
+       ═══════════════════════════════════════════ */
+
+    @media (max-width: 720px) {
+      .topbar          { padding: 16px 18px; }
+      .editor          { padding: 36px 22px 100px; gap: 22px; }
+      .editor__title   { font-size: 32px; }
+      .editor__body    { font-size: 17px; }
+      .save-status     { min-width: 0; font-size: 11px; }
+      .save-status .save-status__text { display: none; }
+      .topbar__btn     { padding: 8px 16px; font-size: 12.5px; }
+      .back-link span:not(.back-link__arrow) { display: none; }
+      .greeting        { font-size: 36px; }
+      .signin__title   { font-size: 36px; }
+      .shape           { opacity: 0.35; }
+    }
+
+    @media (max-width: 420px) {
+      .editor__title   { font-size: 28px; }
+      .greeting        { font-size: 30px; }
+      .signin__title   { font-size: 30px; }
+      .mood-picker     { gap: 4px; }
+      .mood-option     { padding: 5px 10px 5px 9px; font-size: 12px; }
+      .account-btn span:not(.account-btn__email) { display: none; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- ── Loading screen (shown while auth state is determined) ── -->
+  <div class="loading" id="loading">
+    <div class="loading__dot"></div>
+  </div>
+
+
+  <!-- ── Background atmosphere (shared) ── -->
+  <div class="bg-shapes" aria-hidden="true">
+    <div class="shape shape--1"></div>
+    <div class="shape shape--2"></div>
+    <div class="shape shape--3"></div>
+    <div class="shape shape--4"></div>
+    <div class="shape shape--5"></div>
+    <canvas class="motes" id="motes"></canvas>
+  </div>
+
+
+  <!-- ══════════════════════════════════════════
+       VIEW: SIGN IN
+       ══════════════════════════════════════════ -->
+  <section class="view signin" id="view-signin">
+    <div class="signin__panel" id="signin-panel">
+      <div class="signin__logo">Daily Journal</div>
+      <h1 class="signin__title">A quiet place<br/>to think.</h1>
+      <p class="signin__subtitle">Sign in to begin — or to pick up where you left off.</p>
+
+      <button class="google-signin-btn" id="signin-btn">
+        <svg class="google-signin-btn__icon" viewBox="0 0 18 18" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <path d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844a4.14 4.14 0 0 1-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.875 2.684-6.615z" fill="#4285F4"/>
+          <path d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 0 0 9 18z" fill="#34A853"/>
+          <path d="M3.964 10.71A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.71V4.958H.957A8.996 8.996 0 0 0 0 9c0 1.452.348 2.827.957 4.042l3.007-2.332z" fill="#FBBC05"/>
+          <path d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.958L3.964 7.29C4.672 5.163 6.656 3.58 9 3.58z" fill="#EA4335"/>
+        </svg>
+        <span>Continue with Google</span>
+      </button>
+
+      <p class="signin__footer">Your entries are private — only you can see them.</p>
+    </div>
+  </section>
+
+
+  <!-- ══════════════════════════════════════════
+       VIEW: HOME
+       ══════════════════════════════════════════ -->
+  <section class="view home" id="view-home">
+
+    <!-- Hamburger -->
+    <button class="hamburger" id="hamburger" aria-label="Toggle journal sidebar">
+      <span class="hamburger__line"></span>
+      <span class="hamburger__line"></span>
+      <span class="hamburger__line"></span>
+    </button>
+
+    <!-- Account button -->
+    <button class="account-btn" id="account-btn" aria-label="Account menu">
+      <img class="account-btn__avatar" id="account-avatar" alt="" />
+      <span id="account-firstname"></span>
+    </button>
+
+    <!-- Account dropdown -->
+    <div class="account-menu" id="account-menu">
+      <div class="account-menu__header">
+        <div class="account-menu__name"  id="account-fullname"></div>
+        <div class="account-menu__email" id="account-email"></div>
+      </div>
+      <button class="account-menu__item" id="signout-btn">Sign out</button>
+    </div>
+
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar__header">
+        <h2 class="sidebar__title">Your journal</h2>
+        <p class="sidebar__subtitle" id="entry-count-sidebar">Loading…</p>
+      </div>
+      <div class="sidebar__list" id="entry-list"></div>
+    </aside>
+
+    <!-- Overlay -->
+    <div class="overlay" id="overlay"></div>
+
+    <!-- Center -->
+    <main class="home__main">
+      <div class="center" id="center">
+        <div class="date-pill" id="date-pill"></div>
+        <h1 class="greeting">Welcome back, <span class="greeting__name" id="user-firstname"></span></h1>
+        <p class="motivation" id="motivation"></p>
+        <button class="new-entry-btn" id="new-entry-btn">
+          <span class="new-entry-btn__icon">+</span>
+          <span>New Entry</span>
+        </button>
+        <p class="entry-count" id="entry-count"></p>
+      </div>
+    </main>
+  </section>
+
+
+  <!-- ══════════════════════════════════════════
+       VIEW: EDITOR
+       ══════════════════════════════════════════ -->
+  <section class="view editor-view" id="view-editor">
+
+    <header class="topbar">
+      <div class="topbar__left">
+        <button class="back-link" id="back-link" aria-label="Back to journal">
+          <span class="back-link__arrow" aria-hidden="true">←</span>
+          <span>Journal</span>
+        </button>
+      </div>
+      <div class="topbar__right">
+        <span class="save-status is-empty" id="save-status" aria-live="polite">
+          <span class="save-status__text"></span>
+        </span>
+        <button class="topbar__btn topbar__btn--ghost" id="edit-btn" style="display: none;">Edit</button>
+        <button class="topbar__btn topbar__btn--primary" id="done-btn">Done</button>
+      </div>
+    </header>
+
+    <main class="editor" id="editor">
+      <div class="editor__date">
+        <span class="editor__date--draft-mark" id="date-mark" style="display: none;"></span>
+        <span id="editor-date-text"></span>
+      </div>
+
+      <textarea class="editor__title" id="editor-title" placeholder="A title…" rows="1" aria-label="Entry title"></textarea>
+
+      <div class="mood-picker" id="mood-picker">
+        <span class="mood-picker__label">Mood</span>
+      </div>
+
+      <textarea class="editor__body" id="editor-body" placeholder="What's on your mind today?" aria-label="Entry body"></textarea>
+    </main>
+  </section>
+
+
+  <!-- ── Toast + Modal (shared across views) ── -->
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <div class="modal-backdrop" id="discard-modal" role="dialog" aria-modal="true" aria-labelledby="discard-title">
+    <div class="modal">
+      <h2 class="modal__title" id="discard-title">Discard this entry?</h2>
+      <p class="modal__body">You haven't written anything yet. We'll quietly remove this draft so it doesn't clutter your journal.</p>
+      <div class="modal__actions">
+        <button class="topbar__btn topbar__btn--ghost"   id="discard-cancel">Keep it</button>
+        <button class="topbar__btn topbar__btn--primary" id="discard-confirm">Discard</button>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ═══════════════════════════════════════════
+       SCRIPT
+       ═══════════════════════════════════════════ -->
+  <script type="module">
+    /* ── Firebase imports (CDN) ── */
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
+    import {
+      getAuth,
+      GoogleAuthProvider,
+      signInWithPopup,
+      signOut,
+      onAuthStateChanged,
+      setPersistence,
+      browserLocalPersistence,
+    } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
+    import {
+      getFirestore,
+      collection,
+      doc,
+      addDoc,
+      getDoc,
+      getDocs,
+      setDoc,
+      updateDoc,
+      deleteDoc,
+      query,
+      orderBy,
+      serverTimestamp,
+    } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
+
+
+    /* ═══════════════════════════════════════════
+       FIREBASE CONFIG  (your project)
+       ═══════════════════════════════════════════ */
+
+    const firebaseConfig = {
+      apiKey:            "AIzaSyCBSb4FuqJXtQ9FShxv6OpquBTi6RsUEDY",
+      authDomain:        "daily-journal-f2f91.firebaseapp.com",
+      databaseURL:       "https://daily-journal-f2f91-default-rtdb.firebaseio.com",
+      projectId:         "daily-journal-f2f91",
+      storageBucket:     "daily-journal-f2f91.firebasestorage.app",
+      messagingSenderId: "105018570758",
+      appId:             "1:105018570758:web:cf21e96d70e62d33e52b87",
+      measurementId:     "G-5KN8JBRELH",
+    };
+
+    const app  = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db   = getFirestore(app);
+
+    // Keep the user signed in across tabs and refreshes
+    setPersistence(auth, browserLocalPersistence).catch((err) => {
+      console.warn("Could not set auth persistence:", err);
+    });
+
+
+    /* ═══════════════════════════════════════════
+       CONSTANTS
+       ═══════════════════════════════════════════ */
+
+    const AUTO_SAVE_INTERVAL = 3000;
+
+    const MOOD_COLORS = {
+      peaceful:      "#8CBDB5",
+      accomplished:  "#C4A265",
+      reflective:    "#9B8EC4",
+      grateful:      "#D4956B",
+      introspective: "#7BA3C4",
+    };
+    const MOOD_LABELS = {
+      peaceful:      "Peaceful",
+      accomplished:  "Accomplished",
+      reflective:    "Reflective",
+      grateful:      "Grateful",
+      introspective: "Introspective",
+    };
+
+    const MESSAGES = [
+      "Every day is a blank page waiting for your story.",
+      "Your thoughts matter. Let them breathe here.",
+      "A few words today, a treasure tomorrow.",
+      "The quietest reflections often speak the loudest.",
+      "You showed up for yourself today. That's enough.",
+      "What's on your mind deserves space.",
+      "Small moments, written down, become big memories.",
+      "This is your corner of the world. Own it.",
+      "Pause. Breathe. Write.",
+      "Today is worth remembering.",
+      "Let the ink carry what the mind holds.",
+      "You're building something beautiful, one entry at a time.",
+    ];
+
+
+    /* ═══════════════════════════════════════════
+       DOM REFS
+       ═══════════════════════════════════════════ */
+
+    const $ = (id) => document.getElementById(id);
+
+    const loadingEl     = $("loading");
+    const viewSignin    = $("view-signin");
+    const viewHome      = $("view-home");
+    const viewEditor    = $("view-editor");
+    const signinPanel   = $("signin-panel");
+    const signinBtn     = $("signin-btn");
+
+    // Home
+    const hamburger     = $("hamburger");
+    const overlay       = $("overlay");
+    const sidebar       = $("sidebar");
+    const entryList     = $("entry-list");
+    const center        = $("center");
+    const datePill      = $("date-pill");
+    const motivationEl  = $("motivation");
+    const userFirstname = $("user-firstname");
+    const newEntryBtn   = $("new-entry-btn");
+    const entryCount    = $("entry-count");
+    const entryCountSb  = $("entry-count-sidebar");
+    const accountBtn    = $("account-btn");
+    const accountMenu   = $("account-menu");
+    const accountAvatar = $("account-avatar");
+    const accountFirst  = $("account-firstname");
+    const accountFull   = $("account-fullname");
+    const accountEmail  = $("account-email");
+    const signoutBtn    = $("signout-btn");
+
+    // Editor
+    const editorEl       = $("editor");
+    const dateText       = $("editor-date-text");
+    const dateMark       = $("date-mark");
+    const titleEl        = $("editor-title");
+    const bodyEl         = $("editor-body");
+    const moodPicker     = $("mood-picker");
+    const saveStatus     = $("save-status");
+    const saveText       = saveStatus.querySelector(".save-status__text");
+    const backLink       = $("back-link");
+    const editBtn        = $("edit-btn");
+    const doneBtn        = $("done-btn");
+
+    // Shared
+    const toastEl        = $("toast");
+    const discardModal   = $("discard-modal");
+    const discardCancel  = $("discard-cancel");
+    const discardConfirm = $("discard-confirm");
+
+
+    /* ═══════════════════════════════════════════
+       STATE
+       ═══════════════════════════════════════════ */
+
+    let currentUser = null;          // Firebase user object
+    let currentView = "loading";     // "signin" | "home" | "editor"
+
+    // Editor state
+    let currentEntry      = null;    // { id, title, body, mood, status, createdAt, updatedAt }
+    let currentEntryId    = null;
+    let editorMode        = "edit";  // "edit" | "view"
+    let lastSavedSnapshot = null;
+    let saveTimer         = null;
+    let isSaving          = false;
+    let toastTimer        = null;
+
+
+    /* ═══════════════════════════════════════════
+       VIEW SWITCHING
+       ═══════════════════════════════════════════ */
+
+    function showView(name) {
+      currentView = name;
+      [viewSignin, viewHome, viewEditor].forEach((v) => v.classList.remove("is-active"));
+      const target = name === "signin" ? viewSignin
+                   : name === "home"   ? viewHome
+                   :                     viewEditor;
+      target.classList.add("is-active");
+      // Update URL hash so back-button works intuitively
+      const hash = name === "home" ? "" : "#" + name;
+      if (window.location.hash !== hash) {
+        history.replaceState(null, "", window.location.pathname + hash);
+      }
+    }
+
+    function hideLoading() {
+      loadingEl.classList.add("is-hidden");
+      setTimeout(() => loadingEl.style.display = "none", 400);
+    }
+
+
+    /* ═══════════════════════════════════════════
+       AUTH
+       ═══════════════════════════════════════════ */
+
+    onAuthStateChanged(auth, async (user) => {
+      currentUser = user;
+
+      if (!user) {
+        showView("signin");
+        document.body.classList.add("is-ready");
+        hideLoading();
+        requestAnimationFrame(() => signinPanel.classList.add("is-mounted"));
+        return;
+      }
+
+      // Signed in → render home
+      renderAccountChrome(user);
+      showView("home");
+      document.body.classList.add("is-ready");
+      hideLoading();
+      renderHomeStaticContent();
+      requestAnimationFrame(() => center.classList.add("is-mounted"));
+      await loadEntries();
+    });
+
+    signinBtn.addEventListener("click", async () => {
+      if (signinBtn.disabled) return;
+      signinBtn.disabled = true;
+      try {
+        const provider = new GoogleAuthProvider();
+        await signInWithPopup(auth, provider);
+        // onAuthStateChanged will take over
+      } catch (err) {
+        console.error("Sign-in failed:", err);
+        if (err.code === "auth/popup-closed-by-user" || err.code === "auth/cancelled-popup-request") {
+          // User dismissed the popup — silent
+        } else {
+          showToast("Couldn't sign in. Try again?");
+        }
+        signinBtn.disabled = false;
+      }
+    });
+
+    signoutBtn.addEventListener("click", async () => {
+      closeAccountMenu();
+      try {
+        await signOut(auth);
+        // onAuthStateChanged → signin view
+      } catch (err) {
+        console.error("Sign-out failed:", err);
+        showToast("Couldn't sign out. Try again?");
+      }
+    });
+
+
+    /* ═══════════════════════════════════════════
+       ACCOUNT CHROME (avatar, name, email)
+       ═══════════════════════════════════════════ */
+
+    function firstName(user) {
+      const name = user.displayName || user.email || "friend";
+      return name.split(" ")[0].split("@")[0];
+    }
+
+    function renderAccountChrome(user) {
+      const first = firstName(user);
+      userFirstname.textContent = first;
+      accountFirst.textContent  = first;
+      accountFull.textContent   = user.displayName || user.email || "";
+      accountEmail.textContent  = user.email || "";
+
+      if (user.photoURL) {
+        accountAvatar.src = user.photoURL;
+        accountAvatar.alt = user.displayName || "Profile picture";
+      } else {
+        accountAvatar.removeAttribute("src");
+        accountAvatar.alt = "";
+      }
+    }
+
+
+    /* ═══════════════════════════════════════════
+       FIRESTORE — entry CRUD
+       Path: users/{uid}/entries/{entryId}
+       ═══════════════════════════════════════════ */
+
+    function entriesCol() {
+      return collection(db, "users", currentUser.uid, "entries");
+    }
+
+    function entryDoc(id) {
+      return doc(db, "users", currentUser.uid, "entries", id);
+    }
+
+    function tsToMs(ts) {
+      // Firestore Timestamp → ms epoch. Handles serverTimestamp() that hasn't
+      // been written yet (returns null) and plain ms numbers (legacy).
+      if (!ts) return Date.now();
+      if (typeof ts === "number") return ts;
+      if (typeof ts.toMillis === "function") return ts.toMillis();
+      if (ts.seconds != null) return ts.seconds * 1000 + Math.floor((ts.nanoseconds || 0) / 1e6);
+      return Date.now();
+    }
+
+    function docToEntry(snap) {
+      const d = snap.data() || {};
+      return {
+        id:        snap.id,
+        title:     d.title  || "",
+        body:      d.body   || "",
+        mood:      d.mood   || null,
+        status:    d.status || "draft",
+        createdAt: tsToMs(d.createdAt),
+        updatedAt: tsToMs(d.updatedAt),
+      };
+    }
+
+    async function listEntries() {
+      // updatedAt is the primary sort. __name__ (the document ID) is the
+      // tiebreaker so two entries created in the same millisecond have a
+      // stable order — without this, list ordering can flicker between loads.
+      const q = query(
+        entriesCol(),
+        orderBy("updatedAt", "desc"),
+        orderBy("__name__", "desc"),
+      );
+      const snaps = await getDocs(q);
+      const out = [];
+      snaps.forEach((s) => out.push(docToEntry(s)));
+      return out;
+    }
+
+    async function createEntry() {
+      const ref = await addDoc(entriesCol(), {
+        title:     "",
+        body:      "",
+        mood:      null,
+        status:    "draft",
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      });
+      const snap = await getDoc(ref);
+      return docToEntry(snap);
+    }
+
+    async function fetchEntry(id) {
+      const snap = await getDoc(entryDoc(id));
+      if (!snap.exists()) return null;
+      return docToEntry(snap);
+    }
+
+    async function patchEntry(id, fields) {
+      const update = { ...fields, updatedAt: serverTimestamp() };
+      await updateDoc(entryDoc(id), update);
+      const snap = await getDoc(entryDoc(id));
+      return docToEntry(snap);
+    }
+
+    async function removeEntry(id) {
+      await deleteDoc(entryDoc(id));
+    }
+
+
+    /* ═══════════════════════════════════════════
+       HOME — static content
+       ═══════════════════════════════════════════ */
+
+    function renderHomeStaticContent() {
+      const today = new Date().toLocaleDateString("en-US", {
+        weekday: "long",
+        month:   "long",
+        day:     "numeric",
+      });
+      datePill.textContent     = today;
+      motivationEl.textContent = `"${MESSAGES[Math.floor(Math.random() * MESSAGES.length)]}"`;
+    }
+
+
+    /* ═══════════════════════════════════════════
+       HOME — entry list
+       ═══════════════════════════════════════════ */
+
+    function formatEntryDate(ms) {
+      return new Date(ms).toLocaleDateString("en-US", {
+        month: "short", day: "numeric", year: "numeric",
+      });
+    }
+
+    function entryPreview(body) {
+      if (!body) return "—";
+      const trimmed = body.trim().replace(/\s+/g, " ");
+      if (trimmed.length === 0) return "—";
+      return trimmed.length > 80 ? trimmed.slice(0, 80) + "…" : trimmed;
+    }
+
+    async function loadEntries() {
+      let entries = [];
+      try {
+        entries = await listEntries();
+      } catch (err) {
+        console.error("Could not load entries:", err);
+        entryList.innerHTML = `
+          <div class="sidebar__empty">
+            <p>Couldn't load your journal.</p>
+            <p class="sidebar__empty__sub">Check your connection and try again.</p>
+          </div>
+        `;
+        entryCountSb.textContent = "—";
+        entryCount.textContent   = "";
+        return;
+      }
+
+      // Count this month (published only)
+      const now = new Date();
+      const monthCount = entries.filter((e) => {
+        if (e.status !== "published") return false;
+        const d = new Date(e.updatedAt);
+        return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth();
+      }).length;
+      const label = monthCount === 1 ? "entry" : "entries";
+      entryCount.textContent   = `${monthCount} ${label} this month`;
+      entryCountSb.textContent = entries.length === 0
+        ? "Nothing yet"
+        : `${entries.length} total · ${monthCount} this month`;
+
+      entryList.innerHTML = "";
+
+      if (entries.length === 0) {
+        entryList.innerHTML = `
+          <div class="sidebar__empty">
+            <p>Your journal is empty.</p>
+            <p class="sidebar__empty__sub">Begin with whatever's on your mind.</p>
+          </div>
+        `;
+        return;
+      }
+
+      entries.forEach((entry, i) => {
+        const card = document.createElement("div");
+        const isDraft = entry.status === "draft";
+        card.className = "entry-card" + (isDraft ? " is-draft" : "");
+        card.dataset.id = entry.id;
+        card.style.transitionDelay = `${i * 60 + 150}ms`;
+
+        const moodColor = entry.mood && MOOD_COLORS[entry.mood] ? MOOD_COLORS[entry.mood] : "#D4CFC4";
+        const titleText = (entry.title || "").trim().length > 0
+          ? entry.title
+          : (isDraft ? "Untitled draft" : "Untitled");
+
+        card.innerHTML = `
+          <div class="entry-card__top">
+            <span class="entry-card__mood" style="background-color: ${moodColor}"></span>
+            <span class="entry-card__date">${formatEntryDate(entry.updatedAt)}</span>
+            ${isDraft ? `<span class="entry-card__draft-pill">Draft</span>` : ""}
+          </div>
+          <h3 class="entry-card__title"></h3>
+          <p class="entry-card__preview"></p>
+        `;
+        card.querySelector(".entry-card__title").textContent   = titleText;
+        card.querySelector(".entry-card__preview").textContent = entryPreview(entry.body);
+
+        card.addEventListener("click", () => {
+          openEntry(entry.id, isDraft ? "edit" : "view");
+        });
+
+        entryList.appendChild(card);
+        requestAnimationFrame(() => card.classList.add("is-mounted"));
+      });
+    }
+
+
+    /* ═══════════════════════════════════════════
+       NEW ENTRY
+       ═══════════════════════════════════════════ */
+
+    newEntryBtn.addEventListener("click", async () => {
+      if (newEntryBtn.disabled) return;
+      newEntryBtn.disabled = true;
+      try {
+        const entry = await createEntry();
+        openEntry(entry.id, "edit");
+      } catch (err) {
+        console.error(err);
+        showToast("Couldn't start a new entry. Check your connection.");
+      } finally {
+        newEntryBtn.disabled = false;
+      }
+    });
+
+
+    /* ═══════════════════════════════════════════
+       EDITOR — open / load / mood / mode
+       ═══════════════════════════════════════════ */
+
+    // Build mood picker once
+    Object.entries(MOOD_LABELS).forEach(([key, label]) => {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "mood-option";
+      btn.dataset.mood = key;
+      btn.setAttribute("aria-pressed", "false");
+      btn.innerHTML = `
+        <span class="mood-option__dot" style="background-color: ${MOOD_COLORS[key]}"></span>
+        <span>${label}</span>
+      `;
+      btn.addEventListener("click", () => {
+        if (editorMode !== "edit") return;
+        const next = currentEntry && currentEntry.mood === key ? null : key;
+        setMood(next);
+        scheduleSave();
+      });
+      moodPicker.appendChild(btn);
+    });
+
+    async function openEntry(id, mode) {
+      currentEntryId = id;
+      editorMode     = mode;
+      titleEl.value  = "";
+      bodyEl.value   = "";
+      setMood(null);
+      clearStatus();
+
+      let entry = null;
+      try {
+        entry = await fetchEntry(id);
+      } catch (err) {
+        console.error(err);
+        showToast("Couldn't load that entry.");
+        return;
+      }
+      if (!entry) {
+        showToast("That entry no longer exists.");
+        await loadEntries();
+        return;
+      }
+
+      currentEntry  = entry;
+      titleEl.value = entry.title || "";
+      bodyEl.value  = entry.body  || "";
+      setMood(entry.mood);
+      autoGrow(titleEl);
+      autoGrow(bodyEl);
+      dateText.textContent = formatHeaderDate(entry.createdAt);
+      dateMark.style.display = entry.status === "draft" ? "" : "none";
+      lastSavedSnapshot = snapshot();
+
+      applyEditorMode(mode);
+      showView("editor");
+      // Mount animation — re-trigger every time we open
+      editorEl.classList.remove("is-mounted");
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => editorEl.classList.add("is-mounted"));
+      });
+    }
+
+    function applyEditorMode(next) {
+      editorMode = next;
+      const editing = (next === "edit");
+
+      titleEl.readOnly = !editing;
+      bodyEl.readOnly  = !editing;
+      editorEl.classList.toggle("is-readonly", !editing);
+
+      editBtn.style.display = editing ? "none" : "";
+      doneBtn.style.display = editing ? "" : "none";
+
+      if (!editing) clearStatus();
+
+      if (editing) {
+        if (!titleEl.value.trim()) {
+          titleEl.focus();
+        } else {
+          bodyEl.focus();
+          bodyEl.setSelectionRange(bodyEl.value.length, bodyEl.value.length);
+        }
+      }
+    }
+
+    editBtn.addEventListener("click", () => applyEditorMode("edit"));
+
+    function setMood(value) {
+      if (currentEntry) currentEntry.mood = value;
+      moodPicker.querySelectorAll(".mood-option").forEach((btn) => {
+        const selected = btn.dataset.mood === value;
+        btn.classList.toggle("is-selected", selected);
+        btn.setAttribute("aria-pressed", selected ? "true" : "false");
+      });
+    }
+
+
+    /* ═══════════════════════════════════════════
+       EDITOR — auto-save
+       ═══════════════════════════════════════════ */
+
+    function snapshot() {
+      return JSON.stringify({
+        title: titleEl.value,
+        body:  bodyEl.value,
+        mood:  currentEntry ? currentEntry.mood : null,
+      });
+    }
+
+    function scheduleSave() {
+      if (editorMode !== "edit" || !currentEntryId) return;
+      const now = snapshot();
+      if (now === lastSavedSnapshot) return;
+      setStatus("Unsaved", "saving");
+      if (saveTimer) return;
+      saveTimer = setTimeout(() => {
+        saveTimer = null;
+        save();
+      }, AUTO_SAVE_INTERVAL);
+    }
+
+    async function save({ silent = false } = {}) {
+      if (isSaving || !currentEntryId) return;
+      const payloadSnap = snapshot();
+      if (payloadSnap === lastSavedSnapshot) return;
+
+      isSaving = true;
+      if (!silent) setStatus("Saving", "saving");
+
+      try {
+        await patchEntry(currentEntryId, {
+          title: titleEl.value,
+          body:  bodyEl.value,
+          mood:  currentEntry.mood,
+        });
+        lastSavedSnapshot = payloadSnap;
+        if (!silent) setStatus("Saved", "saved");
+      } catch (err) {
+        console.error(err);
+        setStatus("Offline", "error");
+        if (!silent) showToast("Can't reach the server. We'll keep trying.");
+        setTimeout(() => scheduleSave(), 5000);
+      } finally {
+        isSaving = false;
+        if (snapshot() !== lastSavedSnapshot) scheduleSave();
+      }
+    }
+
+    function setStatus(text, kind) {
+      saveText.textContent = text;
+      saveStatus.classList.remove("is-empty", "is-saving", "is-saved", "is-error");
+      if (kind) saveStatus.classList.add("is-" + kind);
+    }
+
+    function clearStatus() {
+      saveText.textContent = "";
+      saveStatus.classList.remove("is-saving", "is-saved", "is-error");
+      saveStatus.classList.add("is-empty");
+    }
+
+    titleEl.addEventListener("input", () => { autoGrow(titleEl); scheduleSave(); });
+    bodyEl.addEventListener("input",  () => { autoGrow(bodyEl);  scheduleSave(); });
+    titleEl.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") { e.preventDefault(); bodyEl.focus(); }
+    });
+
+
+    /* ═══════════════════════════════════════════
+       EDITOR — done / back / discard
+       ═══════════════════════════════════════════ */
+
+    function hasContent() {
+      return (titleEl.value && titleEl.value.trim().length > 0) ||
+             (bodyEl.value  && bodyEl.value.trim().length  > 0);
+    }
+
+    async function publishAndGoHome() {
+      if (saveTimer) { clearTimeout(saveTimer); saveTimer = null; }
+
+      if (!hasContent()) {
+        openDiscardModal();
+        return;
+      }
+
+      try {
+        setStatus("Saving", "saving");
+        await patchEntry(currentEntryId, {
+          title:  titleEl.value,
+          body:   bodyEl.value,
+          mood:   currentEntry.mood,
+          status: "published",
+        });
+      } catch (err) {
+        console.error(err);
+        showToast("Couldn't save. Check your connection and try again.");
+        setStatus("Offline", "error");
+        return;
+      }
+      setStatus("Saved", "saved");
+      setTimeout(() => goHome(), 220);
+    }
+
+    async function backToHome() {
+      try {
+        if (saveTimer) { clearTimeout(saveTimer); saveTimer = null; }
+
+        if (editorMode === "edit" && snapshot() !== lastSavedSnapshot) {
+          await save({ silent: true });
+        }
+
+        if (currentEntry && currentEntry.status === "draft" && !hasContent()) {
+          openDiscardModal();
+          return;
+        }
+      } catch (err) {
+        console.error(err);
+      }
+      goHome();
+    }
+
+    async function goHome() {
+      currentEntry      = null;
+      currentEntryId    = null;
+      lastSavedSnapshot = null;
+      showView("home");
+      // Re-trigger center mount animation
+      center.classList.remove("is-mounted");
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => center.classList.add("is-mounted"));
+      });
+      await loadEntries();
+    }
+
+    doneBtn.addEventListener("click", publishAndGoHome);
+    backLink.addEventListener("click", backToHome);
+
+
+    /* ═══════════════════════════════════════════
+       DISCARD CONFIRM
+       ═══════════════════════════════════════════ */
+
+    function openDiscardModal() {
+      discardModal.classList.add("is-visible");
+      setTimeout(() => discardCancel.focus(), 50);
+    }
+    function closeDiscardModal() {
+      discardModal.classList.remove("is-visible");
+    }
+    discardCancel.addEventListener("click", () => {
+      closeDiscardModal();
+      titleEl.focus();
+    });
+    discardConfirm.addEventListener("click", async () => {
+      const id = currentEntryId;
+      try {
+        if (id) await removeEntry(id);
+      } catch (err) {
+        console.error(err);
+      }
+      closeDiscardModal();
+      goHome();
+    });
+    discardModal.addEventListener("click", (e) => {
+      if (e.target === discardModal) closeDiscardModal();
+    });
+
+
+    /* ═══════════════════════════════════════════
+       SIDEBAR + ACCOUNT MENU
+       ═══════════════════════════════════════════ */
+
+    function openSidebar()  { hamburger.classList.add("is-open");    overlay.classList.add("is-visible");    sidebar.classList.add("is-open"); }
+    function closeSidebar() { hamburger.classList.remove("is-open"); overlay.classList.remove("is-visible"); sidebar.classList.remove("is-open"); }
+    hamburger.addEventListener("click", () => {
+      sidebar.classList.contains("is-open") ? closeSidebar() : openSidebar();
+    });
+    overlay.addEventListener("click", closeSidebar);
+
+    function openAccountMenu()  { accountMenu.classList.add("is-visible"); }
+    function closeAccountMenu() { accountMenu.classList.remove("is-visible"); }
+    accountBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      accountMenu.classList.contains("is-visible") ? closeAccountMenu() : openAccountMenu();
+    });
+    document.addEventListener("click", (e) => {
+      if (!accountMenu.contains(e.target) && !accountBtn.contains(e.target)) {
+        closeAccountMenu();
+      }
+    });
+
+
+    /* ═══════════════════════════════════════════
+       KEYBOARD SHORTCUTS
+       ═══════════════════════════════════════════ */
+
+    document.addEventListener("keydown", (e) => {
+      const mod = e.metaKey || e.ctrlKey;
+
+      // Esc
+      if (e.key === "Escape") {
+        if (discardModal.classList.contains("is-visible")) {
+          closeDiscardModal();
+          return;
+        }
+        if (accountMenu.classList.contains("is-visible")) {
+          closeAccountMenu();
+          return;
+        }
+        if (sidebar.classList.contains("is-open")) {
+          closeSidebar();
+          return;
+        }
+        if (currentView === "editor") {
+          backToHome();
+        }
+        return;
+      }
+
+      // Editor shortcuts
+      if (currentView === "editor") {
+        if (mod && e.key === "s") {
+          e.preventDefault();
+          if (editorMode === "edit") {
+            if (saveTimer) { clearTimeout(saveTimer); saveTimer = null; }
+            save();
+          }
+          return;
+        }
+        if (mod && e.key === "Enter") {
+          e.preventDefault();
+          if (editorMode === "edit") publishAndGoHome();
+          else                       goHome();
+          return;
+        }
+      }
+
+      // Home shortcuts — "n" for new entry
+      if (currentView === "home") {
+        const target = e.target;
+        if (target && (target.tagName === "INPUT" || target.tagName === "TEXTAREA")) return;
+        if (e.key === "n" && !mod && !e.altKey) {
+          e.preventDefault();
+          newEntryBtn.click();
+        }
+        if (mod && e.key.toLowerCase() === "n") {
+          e.preventDefault();
+          newEntryBtn.click();
+        }
+      }
+    });
+
+
+    /* ═══════════════════════════════════════════
+       SAFETY: save on hide / unload
+       Best-effort flush of in-flight edits.
+       ═══════════════════════════════════════════ */
+
+    window.addEventListener("beforeunload", () => {
+      if (currentView === "editor" && editorMode === "edit" && currentEntryId &&
+          snapshot() !== lastSavedSnapshot) {
+        // Fire-and-forget — Firestore writes are async, can't guarantee delivery on unload
+        save({ silent: true });
+      }
+    });
+
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState === "hidden" &&
+          currentView === "editor" && editorMode === "edit" &&
+          snapshot() !== lastSavedSnapshot) {
+        save({ silent: true });
+      }
+    });
+
+
+    /* ═══════════════════════════════════════════
+       TOAST
+       ═══════════════════════════════════════════ */
+
+    function showToast(message, duration = 3500) {
+      toastEl.textContent = message;
+      toastEl.classList.add("is-visible");
+      if (toastTimer) clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => toastEl.classList.remove("is-visible"), duration);
+    }
+
+
+    /* ═══════════════════════════════════════════
+       UTILITIES
+       ═══════════════════════════════════════════ */
+
+    function autoGrow(el) {
+      el.style.height = "auto";
+      el.style.height = el.scrollHeight + "px";
+    }
+
+    function formatHeaderDate(ms) {
+      const d = new Date(ms);
+      const date = d.toLocaleDateString("en-US", {
+        weekday: "long", month: "long", day: "numeric", year: "numeric",
+      });
+      const time = d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
+      return `${date} · ${time}`;
+    }
+
+
+    /* ═══════════════════════════════════════════
+       FLOATING MOTES
+       ═══════════════════════════════════════════ */
+
+    (() => {
+      const canvas = document.getElementById("motes");
+      const ctx    = canvas.getContext("2d");
+      const MOTE_COUNT = 70;
+      const COLORS     = ["200, 192, 176", "184, 176, 160"];
+      const dpr        = window.devicePixelRatio || 1;
+
+      let width  = 0;
+      let height = 0;
+      let motes  = [];
+
+      function resize() {
+        const rect = canvas.getBoundingClientRect();
+        width  = rect.width;
+        height = rect.height;
+        canvas.width  = width  * dpr;
+        canvas.height = height * dpr;
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+        ctx.scale(dpr, dpr);
+      }
+
+      function makeMote(initial = false) {
+        const traversalSeconds = 80 + Math.random() * 70;
+        const speed = height / traversalSeconds;
+        return {
+          x:         Math.random() * width,
+          y:         initial ? Math.random() * height : height + Math.random() * 20,
+          size:      1 + Math.random() * 2,
+          opacity:   0.08 + Math.random() * 0.17,
+          speed,
+          color:     COLORS[Math.floor(Math.random() * COLORS.length)],
+          swayAmp:   8 + Math.random() * 18,
+          swayFreq:  0.0003 + Math.random() * 0.0005,
+          swayPhase: Math.random() * Math.PI * 2,
+        };
+      }
+
+      function init() {
+        resize();
+        motes = Array.from({ length: MOTE_COUNT }, () => makeMote(true));
+      }
+
+      let lastTime = performance.now();
+
+      function tick(now) {
+        const dt = (now - lastTime) / 1000;
+        lastTime = now;
+
+        ctx.clearRect(0, 0, width, height);
+
+        for (const m of motes) {
+          m.y -= m.speed * dt;
+          const drawX = m.x + Math.sin(now * m.swayFreq + m.swayPhase) * m.swayAmp;
+
+          if (m.y < -m.size) {
+            Object.assign(m, makeMote(false));
+            continue;
+          }
+
+          ctx.beginPath();
+          ctx.arc(drawX, m.y, m.size / 2, 0, Math.PI * 2);
+          ctx.fillStyle = `rgba(${m.color}, ${m.opacity})`;
+          ctx.fill();
+        }
+
+        requestAnimationFrame(tick);
+      }
+
+      window.addEventListener("resize", () => {
+        const prevW = width;
+        const prevH = height;
+        resize();
+        if (prevW > 0 && prevH > 0) {
+          const xRatio = width  / prevW;
+          const yRatio = height / prevH;
+          for (const m of motes) {
+            m.x *= xRatio;
+            m.y *= yRatio;
+            m.speed = height / (80 + Math.random() * 70);
+          }
+        }
+      });
+
+      init();
+      requestAnimationFrame(tick);
+    })();
+  </script>
+
+</body>
+</html>
